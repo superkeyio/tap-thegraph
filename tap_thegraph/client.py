@@ -10,24 +10,10 @@ from singer_sdk.streams import GraphQLStream
 class TheGraphStream(GraphQLStream):
     """TheGraph stream class."""
 
-    # TODO: Set the API's base URL here:
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        return self.config["api_url"]
-
-    # Alternatively, use a static string for url_base:
-    # url_base = "https://api.mysample.com"
-
-    @property
-    def http_headers(self) -> dict:
-        """Return the http headers needed."""
-        headers = {}
-        if "user_agent" in self.config:
-            headers["User-Agent"] = self.config.get("user_agent")
-        # If not using an authenticator, you may also provide inline auth headers:
-        # headers["Private-Token"] = self.config.get("auth_token")
-        return headers
+        return self.config.get("subgraph_url")
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
