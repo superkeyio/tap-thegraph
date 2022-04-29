@@ -1,5 +1,6 @@
 """GraphQL client handling, including TheGraphStream base class."""
 
+from gql import Client as GraphQlClient
 import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
@@ -9,6 +10,12 @@ from singer_sdk.streams import GraphQLStream
 
 class TheGraphStream(GraphQLStream):
     """TheGraph stream class."""
+
+    graphql_client: GraphQlClient
+
+    def __init__(self, *args, **kwargs):
+        self.graphql_client = kwargs.pop('graphql_client')
+        super().__init__(*args, **kwargs)
 
     @property
     def url_base(self) -> str:

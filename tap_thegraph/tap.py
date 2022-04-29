@@ -1,5 +1,6 @@
 """TheGraph tap class."""
 
+import logging
 from typing import List
 
 from singer_sdk import Tap, Stream
@@ -9,9 +10,9 @@ from tap_thegraph.streams import (
     TheGraphStream,
     EntityStream,
 )
-from graphql import get_introspection_query, graphql_sync
+from graphql import GraphQLInterfaceType, GraphQLObjectType, get_introspection_query, graphql_sync
 from gql import Client, gql
-from gql.transport.requests import RequestsHTTPTransport
+from gql.transport.requests import RequestsHTTPTransport, log as requests_logger
 
 class TapTheGraph(Tap):
     """TheGraph tap class."""
@@ -38,6 +39,7 @@ class TapTheGraph(Tap):
 
     def discover_streams(self) -> List[Stream]:
         """Return a list of discovered streams."""
+        requests_logger.setLevel(logging.WARNING)
         transport = RequestsHTTPTransport(
             url=self.config.get("subgraph_url"),
             verify=True,
@@ -54,9 +56,14 @@ class TapTheGraph(Tap):
         }
         """
         client.execute(gql(noop_query))
-        print(client.schema.query_type.fields)
-        # for entity in client.schema:
-        #     print(entity)
 
+        entities = []
+        for field in client.schema.query_type.fields.values():
+            if isinstance(field.type, GraphQLObjectType) or isinstance(field.type, GraphQLInterfaceType):
+                entities.append(field.type)
+        
+        streams = []
+        for entity in entities:
+            streams.append(EntityStream(tap=self, entity=entity, graphql_client=client))
 
-        return []
+        return streams
