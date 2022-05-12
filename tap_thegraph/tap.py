@@ -1,7 +1,7 @@
 """TheGraph tap class."""
 
 import logging
-from typing import List
+from typing import Dict, List
 
 from singer_sdk import Tap, Stream
 from singer_sdk import typing as th  # JSON schema typing helpers
@@ -57,13 +57,15 @@ class TapTheGraph(Tap):
         """
         client.execute(gql(noop_query))
 
-        entities = []
+        entities: Dict[str, GraphQLObjectType] = {}
         for field in client.schema.query_type.fields.values():
             if isinstance(field.type, GraphQLObjectType) or isinstance(field.type, GraphQLInterfaceType):
-                entities.append(field.type)
+                entities[field.type.name] = field.type
         
         streams = []
-        for entity in entities:
-            streams.append(EntityStream(tap=self, entity=entity, graphql_client=client))
+        for entity_config in self.config.get('entities'):
+            entity = entities[entity_config.get('name')]
+            replication_key = entity_config.get('replication_key')
+            streams.append(EntityStream(tap=self, entity=entity, replication_key=replication_key, graphql_client=client))
 
         return streams

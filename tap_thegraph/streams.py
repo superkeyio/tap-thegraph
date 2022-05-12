@@ -16,7 +16,7 @@ SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 # TODO: heavy lifting here
 def convert_graphql_output_type_to_schema(graphql_output_type: GraphQLOutputType):
-    
+    # account for lists somehow
     if isinstance(graphql_output_type, GraphQLScalarType):
         print('Scalar', graphql_output_type)
         return dict(wrapped=th.StringType)
@@ -38,19 +38,21 @@ def convert_graphql_output_type_to_schema(graphql_output_type: GraphQLOutputType
 
 class EntityStream(TheGraphStream):
     entity: Union[GraphQLObjectType, GraphQLInterfaceType]
-
+        
     @property
     def name(self) -> str:
         return self.entity.name
 
+    replication_key: Optional[str] = None
+
     def __init__(self, *args, **kwargs):
         self.entity = kwargs.pop('entity')
+        self.replication_key = kwargs.pop('replication_key')
         super().__init__(*args, **kwargs)
 
     @property
     def schema(self) -> dict:
         r: th.ObjectType = convert_graphql_output_type_to_schema(self.entity)
-        print(r.type_dict)
         return r.to_dict()
 
     @property

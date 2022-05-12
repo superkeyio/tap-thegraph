@@ -1,3 +1,6 @@
 {
-    "subgraph_url": "https://api.thegraph.com/subgraphs/name/graphprotocol/compound-v2"
+    "subgraph_url": "https://api.thegraph.com/subgraphs/name/graphprotocol/compound-v2",
+    "entities": [
+        { "name": "CTokenTransfer", "replication_key": "blockTime" }
+    ]
 }
