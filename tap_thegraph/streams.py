@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
 import stringcase
+import subprocess
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -25,7 +26,10 @@ class EntityStream(TheGraphStream):
     @property
     def schema(self) -> dict:
         # TODO: convert GraphQL schema to JSON schema and filter
-        return {}
+
+        json_schema = subprocess.run(['subgraph-to-json-schema', self.graphql_client.transport.url], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        print(json_schema)
+        return { '': "" }
 
 
     @property
