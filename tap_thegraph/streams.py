@@ -1,7 +1,10 @@
 """Stream type classes for tap-thegraph."""
 
+import json
+from operator import index
 from pprint import pprint
 from typing import Any, Dict, Iterable, Optional
+from pyparsing import indentedBlock
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -35,7 +38,7 @@ graph_type_to_json_schema_type = {
         "type": "object"
     },
     "Int": {
-        "type": "number"
+        "type": "integer"
     },
     "Address": {
         "type": "string",
@@ -68,12 +71,30 @@ class EntityStream(SubgraphStream):
     def _extract_entity_schema_from_api_schema(self, entity_name: str) -> dict:
         entity_definition = deepcopy(
             self.api_json_schema["definitions"][entity_name])
-        properties = entity_definition["properties"]
-        for property in properties:
-            properties[property] = properties[property]["properties"]["return"]
-            properties[property].update(
-                graph_type_to_json_schema_type[properties[property]['title']])
-        return entity_definition
+
+        pprint(entity_definition)
+
+        # def helper(obj: dict) -> dict:
+
+        #     # how to deal with recursion?
+        #     properties = obj["properties"]
+        #     for property in properties:
+        #         if "properties" in properties[
+        #                 property] and "return" in properties[property][
+        #                     "properties"]:
+        #             properties[property] = properties[property]["properties"][
+        #                 "return"]
+
+        #         if "properties" in properties[property]:
+        #             helper(properties[property])
+        #         elif "items" in properties[property]:
+        #             helper(properties[property]["items"])
+        #         else:
+        #             properties[property].update(graph_type_to_json_schema_type[
+        #                 properties[property]['title']])
+
+        # helper(entity_definition)
+        return {}
 
     @property
     def schema(self) -> dict:
