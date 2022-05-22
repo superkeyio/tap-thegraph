@@ -3,18 +3,40 @@
 from gql import Client as GraphQlClient
 import requests
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Any, Dict, Optional, List, Iterable
+import subprocess
+import jsonref
+from graphql import GraphQLInterfaceType, GraphQLObjectType, get_introspection_query, graphql_sync
+from gql import Client, gql
+from gql.transport.requests import RequestsHTTPTransport, log as requests_logger
+import logging
 
 from singer_sdk.streams import GraphQLStream
 
 
-class TheGraphStream(GraphQLStream):
+class SubgraphStream(GraphQLStream):
     """TheGraph stream class."""
 
     graphql_client: GraphQlClient
+    api_json_schema: dict
+    subgraph_url: str
+    subgraph_name: str
 
     def __init__(self, *args, **kwargs):
-        self.graphql_client = kwargs.pop('graphql_client')
+        requests_logger.setLevel(logging.WARNING)
+        self.subgraph_url = kwargs.pop('subgraph_url')
+        self.subgraph_name = self.subgraph_url.split('/')[-1]
+        transport = RequestsHTTPTransport(
+            url=self.subgraph_url,
+            verify=True,
+            retries=3,
+        )
+        self.graphql_client = Client(transport=transport,
+                                     fetch_schema_from_transport=True)
+
+        self.api_json_schema = jsonref.loads(
+            subprocess.run(['subgraph-to-json-schema', self.subgraph_url],
+                           stdout=subprocess.PIPE).stdout.decode('utf-8'))
         super().__init__(*args, **kwargs)
 
     @property
