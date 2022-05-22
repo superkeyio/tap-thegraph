@@ -1,16 +1,15 @@
 """GraphQL client handling, including TheGraphStream base class."""
 
-from gql import Client as GraphQlClient
-import requests
-from pathlib import Path
-from typing import Any, Dict, Optional, List, Iterable
-import subprocess
-import jsonref
-from graphql import GraphQLInterfaceType, GraphQLObjectType, get_introspection_query, graphql_sync
-from gql import Client, gql
-from gql.transport.requests import RequestsHTTPTransport, log as requests_logger
 import logging
+import subprocess
+from typing import Iterable, Optional
 
+import jsonref
+import requests
+from gql import Client
+from gql import Client as GraphQlClient
+from gql.transport.requests import RequestsHTTPTransport
+from gql.transport.requests import log as requests_logger
 from singer_sdk.streams import GraphQLStream
 
 

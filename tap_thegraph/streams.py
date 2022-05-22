@@ -1,12 +1,10 @@
 """Stream type classes for tap-thegraph."""
 
-from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_thegraph.client import SubgraphStream
-import json
 from copy import deepcopy
 
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types

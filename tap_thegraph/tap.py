@@ -1,7 +1,6 @@
 """TheGraph tap class."""
 
-import logging
-from typing import Dict, List
+from typing import List
 
 from singer_sdk import Tap, Stream
 from singer_sdk import typing as th  # JSON schema typing helpers
