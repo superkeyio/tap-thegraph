@@ -1,6 +1,6 @@
 """Stream type classes for tap-thegraph."""
 
-from typing import Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -87,8 +87,11 @@ class EntityStream(SubgraphStream):
     def order_by(self) -> str:
         return self.replication_key if self.replication_key else 'id'
 
-    # def get_url_params(self, context: Optional[dict], next_page_token: Optional[Any]) -> Dict[str, Any]:
-    #     return super().get_url_params(context, next_page_token)
+    def get_url_params(self, context: Optional[dict],
+                       next_page_token: Optional[Any]) -> Dict[str, Any]:
+        return {
+            "batchSize": 1000,
+        }
 
     # def get_next_page_token(self, response: requests.Response, previous_token: Optional[Any]) -> Any:
     #     return super().get_next_page_token(response, previous_token)
@@ -98,8 +101,8 @@ class EntityStream(SubgraphStream):
         # TODO: how to do pagination?
         newline = "\n\t"
         q = f"""
-query {{
-    {self.query_type}(first: 1000, orderBy: {self.order_by}, orderDirection: asc) {{
+query($batchSize: Int!) {{
+    {self.query_type}(first: $batchSize) {{
         {newline.join(self.schema["properties"].keys())}
     }}
 }}
