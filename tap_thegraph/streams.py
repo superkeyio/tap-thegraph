@@ -4,11 +4,24 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
 import stringcase
 import subprocess
+import jsonref
+from pprint import pprint
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_thegraph.client import TheGraphStream
 from graphql import GraphQLEnumType, GraphQLInterfaceType, GraphQLNonNull, GraphQLOutputType, GraphQLScalarType, GraphQLUnionType, GraphQLWrappingType, get_introspection_query, GraphQLObjectType
+import json
+
+graphql_title_to_json_schema_type = {
+    "BigDecimal": {},
+    "Bytes": {},
+    "BigInt": {},
+    "Bytes": {},
+    "ID": {},
+    "String": {}
+}
+
 class EntityStream(TheGraphStream):
     entity: Union[GraphQLObjectType, GraphQLInterfaceType]
         
@@ -27,8 +40,11 @@ class EntityStream(TheGraphStream):
     def schema(self) -> dict:
         # TODO: convert GraphQL schema to JSON schema and filter
 
-        json_schema = subprocess.run(['subgraph-to-json-schema', self.graphql_client.transport.url], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        print(json_schema)
+        json_schema = jsonref.loads(subprocess.run(['subgraph-to-json-schema', self.graphql_client.transport.url], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+        entity_definition = json_schema["definitions"][self.entity.name]
+        for property in entity_definition["properties"]:
+            entity_definition["properties"][property] = entity_definition["properties"][property]["properties"]["return"]
+        pprint(entity_definition)
         return { '': "" }
 
 
