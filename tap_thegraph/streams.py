@@ -1,5 +1,6 @@
 """Stream type classes for tap-thegraph."""
 
+from pprint import pprint
 from typing import Any, Dict, Iterable, Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
@@ -9,6 +10,7 @@ from copy import deepcopy
 import requests
 from stringcase import camelcase
 
+# How to debug easier?
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types
 graph_type_to_json_schema_type = {
     "BigDecimal": {
@@ -44,13 +46,12 @@ graph_type_to_json_schema_type = {
 
 
 class EntityStream(SubgraphStream):
-    entity_name: str
-    entity_schema: dict
-
     primary_keys = ["id"]
 
-    _latest_id: str = None
-    _latest_timestamp: int = None
+    entity_name: str
+
+    _latest_order_attribute_value: Any = None
+    _next_page_token: Any = None
 
     @property
     def name(self) -> str:
@@ -84,34 +85,42 @@ class EntityStream(SubgraphStream):
         return f"{camelcase(self.entity_name)}s"
 
     @property
-    def order_by(self) -> str:
+    def order_attribute(self) -> str:
         return self.replication_key if self.replication_key else 'id'
 
+    @property
+    def order_attribute_type(self) -> str:
+        return self.schema["properties"][self.order_attribute]["title"]
+
+    # https://thegraph.com/docs/en/developer/graphql-api/#pagination
     def get_url_params(self, context: Optional[dict],
                        next_page_token: Optional[Any]) -> Dict[str, Any]:
         return {
             "batchSize": 1000,
+            "latestOrderValue": self._latest_order_attribute_value
         }
 
-    # def get_next_page_token(self, response: requests.Response, previous_token: Optional[Any]) -> Any:
-    #     return super().get_next_page_token(response, previous_token)
+    def get_next_page_token(self, response: requests.Response,
+                            previous_token: Optional[Any]) -> Any:
+        return self._next_page_token
 
     @property
     def query(self) -> str:
-        # TODO: how to do pagination?
         newline = "\n\t"
-        q = f"""
-query($batchSize: Int!) {{
-    {self.query_type}(first: $batchSize) {{
+        return f"""
+query($batchSize: Int!{ f', $latestOrderValue: {self.order_attribute_type}!' if self._latest_order_attribute_value else '' }) {{
+    {self.query_type}(first: $batchSize, orderBy: {self.order_attribute}, orderDirection: asc{f', where: {{ {self.order_attribute}_gt: $latestOrderValue }}' if self._latest_order_attribute_value else ''}) {{
         {newline.join(self.schema["properties"].keys())}
     }}
 }}
 """
-        print(q)
-        return q
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
-        resp_json = response.json()
-        for row in resp_json.get("data").get(self.query_type):
+        rows = response.json()["data"][self.query_type]
+        for row in rows:
             yield row
+            self._latest_order_attribute_value = row.get(self.order_attribute)
+
+        self._next_page_token = None if len(
+            rows) == 0 else self._latest_order_attribute_value
