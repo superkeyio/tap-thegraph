@@ -6,8 +6,7 @@ from typing import Iterable, Optional
 
 import jsonref
 import requests
-from gql import Client
-from gql import Client as GraphQlClient
+from gql import Client as GraphQLClient, gql
 from gql.transport.requests import RequestsHTTPTransport
 from gql.transport.requests import log as requests_logger
 from singer_sdk.streams import GraphQLStream
@@ -16,7 +15,7 @@ from singer_sdk.streams import GraphQLStream
 class SubgraphStream(GraphQLStream):
     """TheGraph stream class."""
 
-    graphql_client: GraphQlClient
+    graphql_client: GraphQLClient
     api_json_schema: dict
     subgraph_url: str
     subgraph_name: str
@@ -30,8 +29,19 @@ class SubgraphStream(GraphQLStream):
             verify=True,
             retries=3,
         )
-        self.graphql_client = Client(transport=transport,
-                                     fetch_schema_from_transport=True)
+        self.graphql_client = GraphQLClient(transport=transport,
+                                            fetch_schema_from_transport=True)
+
+        noop_query = """
+        {
+            __schema {
+                queryType {
+                    name
+                }
+            }
+        }
+        """
+        self.graphql_client.execute(gql(noop_query))
 
         self.api_json_schema = jsonref.loads(
             subprocess.run(['subgraph-to-json-schema', self.subgraph_url],
@@ -41,14 +51,7 @@ class SubgraphStream(GraphQLStream):
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        return self.config.get("subgraph_url")
-
-    def parse_response(self, response: requests.Response) -> Iterable[dict]:
-        """Parse the response and return an iterator of result rows."""
-        # TODO: Parse response body and return a set of records.
-        resp_json = response.json()
-        for row in resp_json.get("<TODO>"):
-            yield row
+        return self.subgraph_url
 
     def post_process(self, row: dict, context: Optional[dict] = None) -> dict:
         """As needed, append or transform raw data to match expected structure."""
