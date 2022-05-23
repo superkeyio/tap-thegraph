@@ -72,29 +72,39 @@ class EntityStream(SubgraphStream):
         entity_definition = deepcopy(
             self.api_json_schema["definitions"][entity_name])
 
-        pprint(entity_definition)
+        def helper(obj: dict, depth: int = 0) -> dict:
+            # how to deal with recursion?
+            if "properties" not in obj:
+                return
 
-        # def helper(obj: dict) -> dict:
+            properties = obj["properties"]
 
-        #     # how to deal with recursion?
-        #     properties = obj["properties"]
-        #     for property in properties:
-        #         if "properties" in properties[
-        #                 property] and "return" in properties[property][
-        #                     "properties"]:
-        #             properties[property] = properties[property]["properties"][
-        #                 "return"]
+            if depth > 0 and "id" in properties:
+                obj['properties'] = {
+                    "id": graph_type_to_json_schema_type["ID"]
+                }
+            elif "return" in properties:
+                obj["properties"] = properties["return"]
+                helper(obj, depth)
+            else:
+                for property in properties:
+                    if "properties" in properties[
+                            property] and "return" in properties[property][
+                                "properties"]:
+                        properties[property] = properties[property][
+                            "properties"]["return"]
 
-        #         if "properties" in properties[property]:
-        #             helper(properties[property])
-        #         elif "items" in properties[property]:
-        #             helper(properties[property]["items"])
-        #         else:
-        #             properties[property].update(graph_type_to_json_schema_type[
-        #                 properties[property]['title']])
+                    if "properties" in properties[property]:
+                        helper(properties[property], depth + 1)
+                    elif "items" in properties[property]:
+                        helper(properties[property]["items"], depth + 1)
+                    else:
+                        properties[property].update(
+                            graph_type_to_json_schema_type[properties[property]
+                                                           ['title']])
 
-        # helper(entity_definition)
-        return {}
+        helper(entity_definition)
+        return entity_definition
 
     @property
     def schema(self) -> dict:

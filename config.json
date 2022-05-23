@@ -2,7 +2,7 @@
   "subgraphs": [
     {
       "url": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-      "entities": [{ "name": "LiquidityPosition" }]
+      "entities": [{ "name": "Token" }]
     }
   ]
 }
