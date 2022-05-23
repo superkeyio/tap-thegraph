@@ -13,14 +13,26 @@ from copy import deepcopy
 import requests
 from stringcase import camelcase
 
+
+# https://stackoverflow.com/questions/43587505/how-to-find-how-many-level-of-dictionary-is-there-in-python
+def max_depth(d):
+    if (not isinstance(d, dict) or not d):
+        return 0
+    else:
+        return max(max_depth(v) for k, v in d.items()) + 1
+
+
 # How to debug easier?
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types
 graph_type_to_json_schema_type = {
+    "Boolean": {
+        "type": "boolean"
+    },
     "BigDecimal": {
         "type": "string"
     },
     "BigInt": {
-        "type": "integer"
+        "type": "string"
     },
     "Bytes": {
         "type": "string",
@@ -93,8 +105,11 @@ class EntityStream(SubgraphStream):
                     if isinstance(node[child], dict):
                         if '$ref' in node[child]:
                             ref_type = node[child]['$ref'].split('/')[-1]
-                            node[child] = graph_type_to_json_schema_type.get(
-                                ref_type, foreign_key_type)
+                            node[child] = {
+                                **graph_type_to_json_schema_type.get(
+                                    ref_type, foreign_key_type), "description":
+                                ref_type
+                            }
                         elif "properties" in node[child] and "return" in node[
                                 child]["properties"]:
                             node[child] = node[child]["properties"]["return"]
@@ -117,11 +132,12 @@ class EntityStream(SubgraphStream):
 
     @property
     def order_attribute_type(self) -> str:
-        return self.schema["properties"][self.order_attribute]["title"]
+        return self.schema["properties"][self.order_attribute]["description"]
 
     # https://thegraph.com/docs/en/developer/graphql-api/#pagination
     def get_url_params(self, context: Optional[dict],
                        next_page_token: Optional[Any]) -> Dict[str, Any]:
+        # TODO: make batch size configurable
         return {
             "batchSize": 1000,
             "latestOrderValue": self._latest_order_attribute_value
@@ -132,15 +148,25 @@ class EntityStream(SubgraphStream):
         return self._next_page_token
 
     @property
+    def query_fields(self) -> str:
+        return (k if max_depth(v) == 1 else f"{k} {{ id }}"
+                for k, v in self.schema["properties"].items())
+
+    @property
     def query(self) -> str:
         newline = "\n\t"
         return f"""
 query($batchSize: Int!{ f', $latestOrderValue: {self.order_attribute_type}!' if self._latest_order_attribute_value else '' }) {{
     {self.query_type}(first: $batchSize, orderBy: {self.order_attribute}, orderDirection: asc{f', where: {{ {self.order_attribute}_gt: $latestOrderValue }}' if self._latest_order_attribute_value else ''}) {{
-        {newline.join(self.schema["properties"].keys())}
+        {newline.join(self.query_fields)}
     }}
 }}
 """
+
+    def validate_response(self, response: requests.Response) -> None:
+        if response.status_code == 400:
+            print(response.json())
+        return super().validate_response(response)
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
