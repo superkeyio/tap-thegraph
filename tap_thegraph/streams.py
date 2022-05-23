@@ -1,12 +1,6 @@
 """Stream type classes for tap-thegraph."""
 
-import json
-from operator import index
-from pprint import pprint
 from typing import Any, Dict, Iterable, Optional
-from pyparsing import indentedBlock
-
-from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_thegraph.client import SubgraphStream
 from copy import deepcopy
@@ -24,7 +18,7 @@ def max_depth(d):
 
 # How to debug easier?
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types
-graph_type_to_json_schema_type = {
+the_graph_builtin_type_to_json_schema_type = {
     "Boolean": {
         "type": "boolean"
     },
@@ -74,6 +68,8 @@ class EntityStream(SubgraphStream):
 
     entity_name: str
 
+    batch_size: int
+
     _latest_order_attribute_value: Any = None
     _next_page_token: Any = None
 
@@ -86,6 +82,7 @@ class EntityStream(SubgraphStream):
     def __init__(self, *args, **kwargs):
         self.entity_name = kwargs.pop('entity_name')
         self.replication_key = kwargs.pop('replication_key')  # timestamp
+        self.batch_size = kwargs.pop('batch_size')
 
         super().__init__(*args, **kwargs)
 
@@ -106,7 +103,7 @@ class EntityStream(SubgraphStream):
                         if '$ref' in node[child]:
                             ref_type = node[child]['$ref'].split('/')[-1]
                             node[child] = {
-                                **graph_type_to_json_schema_type.get(
+                                **the_graph_builtin_type_to_json_schema_type.get(
                                     ref_type, foreign_key_type), "description":
                                 ref_type
                             }
@@ -139,7 +136,7 @@ class EntityStream(SubgraphStream):
                        next_page_token: Optional[Any]) -> Dict[str, Any]:
         # TODO: make batch size configurable
         return {
-            "batchSize": 1000,
+            "batchSize": self.batch_size,
             "latestOrderValue": self._latest_order_attribute_value
         }
 

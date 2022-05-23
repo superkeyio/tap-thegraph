@@ -29,8 +29,8 @@ class TapTheGraph(Tap):
     name = "tap-thegraph"
 
     config_jsonschema = th.PropertiesList(
-        th.Property("subgraphs", th.ArrayType(SubgraphType),
-                    required=True)).to_dict()
+        th.Property("subgraphs", th.ArrayType(SubgraphType), required=True),
+        th.Property("batch_size", th.IntegerType, default=1000)).to_dict()
 
     def discover_streams(self) -> List[Stream]:
         """Return a list of discovered streams."""
@@ -43,6 +43,7 @@ class TapTheGraph(Tap):
                         tap=self,
                         entity_name=entity_config.get('name'),
                         replication_key=entity_config.get('replication_key'),
-                        subgraph_url=subgraph_config.get('url')))
+                        subgraph_url=subgraph_config.get('url'),
+                        batch_size=self.config.get('batch_size')))
 
         return streams
