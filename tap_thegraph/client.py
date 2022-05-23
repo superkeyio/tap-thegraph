@@ -54,11 +54,6 @@ class SubgraphStream(GraphQLStream):
     subgraph_url: str
     subgraph_name: str
 
-    def _simplify_json_schema(self, api_json_schema):
-        # do some kind of simplification here
-        # only do IDs
-        return api_json_schema
-
     def __init__(self, *args, **kwargs):
         requests_logger.setLevel(logging.WARNING)
         self.subgraph_url = kwargs.pop('subgraph_url')
@@ -83,12 +78,10 @@ class SubgraphStream(GraphQLStream):
         """
         self.graphql_client.execute(gql(noop_query))
 
-        self.api_json_schema = jsonref.loads(subprocess.run(
-            ['subgraph-to-json-schema', self.subgraph_url],
-            stdout=subprocess.PIPE).stdout.decode('utf-8'),
-                                             jsonschema=True)
+        self.api_json_schema = json.loads(
+            subprocess.run(['subgraph-to-json-schema', self.subgraph_url],
+                           stdout=subprocess.PIPE).stdout.decode('utf-8'))
 
-        self.api_json_schema = self._simplify_json_schema(self.api_json_schema)
         super().__init__(*args, **kwargs)
 
     @property

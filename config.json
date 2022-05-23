@@ -1,8 +1,8 @@
 {
   "subgraphs": [
     {
-      "url": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-      "entities": [{ "name": "Token" }]
+      "url": "https://api.thegraph.com/subgraphs/name/graphprotocol/compound-v2",
+      "entities": [{ "name": "AccountCToken" }]
     }
   ]
 }

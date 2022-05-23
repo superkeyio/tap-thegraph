@@ -44,6 +44,15 @@ graph_type_to_json_schema_type = {
         "type": "string",
         "minLength": 40,
         "maxLength": 40
+    },
+}
+
+foreign_key_type = {
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string",
+        }
     }
 }
 
@@ -72,38 +81,25 @@ class EntityStream(SubgraphStream):
         entity_definition = deepcopy(
             self.api_json_schema["definitions"][entity_name])
 
-        def helper(obj: dict, depth: int = 0) -> dict:
-            # how to deal with recursion?
-            if "properties" not in obj:
-                return
+        def normalize_schema(node: dict):
+            iterator = None
+            if isinstance(node, list):
+                iterator = range(len(node))
+            elif isinstance(node, dict):
+                iterator = node.keys()
+            if iterator:
+                for child in iterator:
+                    normalize_schema(node[child])
+                    if isinstance(node[child], dict):
+                        if '$ref' in node[child]:
+                            ref_type = node[child]['$ref'].split('/')[-1]
+                            node[child] = graph_type_to_json_schema_type.get(
+                                ref_type, foreign_key_type)
+                        elif "properties" in node[child] and "return" in node[
+                                child]["properties"]:
+                            node[child] = node[child]["properties"]["return"]
 
-            properties = obj["properties"]
-
-            if depth > 0 and "id" in properties:
-                obj['properties'] = {
-                    "id": graph_type_to_json_schema_type["ID"]
-                }
-            elif "return" in properties:
-                obj["properties"] = properties["return"]
-                helper(obj, depth)
-            else:
-                for property in properties:
-                    if "properties" in properties[
-                            property] and "return" in properties[property][
-                                "properties"]:
-                        properties[property] = properties[property][
-                            "properties"]["return"]
-
-                    if "properties" in properties[property]:
-                        helper(properties[property], depth + 1)
-                    elif "items" in properties[property]:
-                        helper(properties[property]["items"], depth + 1)
-                    else:
-                        properties[property].update(
-                            graph_type_to_json_schema_type[properties[property]
-                                                           ['title']])
-
-        helper(entity_definition)
+        normalize_schema(entity_definition)
         return entity_definition
 
     @property
