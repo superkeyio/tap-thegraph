@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, Iterable, Optional
 
+from functools import cached_property
+
 from tap_thegraph.client import SubgraphStream
 from copy import deepcopy
 import requests
@@ -80,7 +82,7 @@ class EntityStream(SubgraphStream):
     _latest_order_attribute_value: Any = None
     _next_page_token: Any = None
 
-    @property
+    @cached_property
     def name(self) -> str:
         return f"{self.subgraph_name}_{self.entity_name}"
 
@@ -122,19 +124,19 @@ class EntityStream(SubgraphStream):
                             child]["properties"]:
                         node[child] = node[child]["properties"]["return"]
 
-    @property
+    @cached_property
     def schema(self) -> dict:
         return self._extract_entity_schema_from_api_schema(self.entity_name)
 
-    @property
+    @cached_property
     def query_type(self) -> str:
         return p.plural_noun(camelcase(self.entity_name))
 
-    @property
+    @cached_property
     def order_attribute(self) -> str:
         return self.replication_key if self.replication_key else 'id'
 
-    @property
+    @cached_property
     def order_attribute_type(self) -> str:
         return self.schema["properties"][self.order_attribute]["description"]
 
