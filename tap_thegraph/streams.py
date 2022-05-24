@@ -6,6 +6,9 @@ from tap_thegraph.client import SubgraphStream
 from copy import deepcopy
 import requests
 from stringcase import camelcase
+import inflect
+
+p = inflect.engine()
 
 
 # https://stackoverflow.com/questions/43587505/how-to-find-how-many-level-of-dictionary-is-there-in-python
@@ -16,7 +19,6 @@ def max_depth(d):
         return max(max_depth(v) for k, v in d.items()) + 1
 
 
-# How to debug easier?
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types
 the_graph_builtin_type_to_json_schema_type = {
     "Boolean": {
@@ -54,13 +56,18 @@ the_graph_builtin_type_to_json_schema_type = {
 }
 
 foreign_key_type = {
-    "type": "object",
-    "properties": {
-        "id": {
-            "type": "string",
-        }
-    }
+    "type": "string",
 }
+
+
+def common_iterable(obj):
+    if isinstance(obj, dict):
+        for key in obj:
+            yield key
+    elif isinstance(obj, list):
+        for index, _ in enumerate(obj):
+            yield index
+    return None
 
 
 class EntityStream(SubgraphStream):
@@ -90,29 +97,30 @@ class EntityStream(SubgraphStream):
         entity_definition = deepcopy(
             self.api_json_schema["definitions"][entity_name])
 
-        def normalize_schema(node: dict):
-            iterator = None
-            if isinstance(node, list):
-                iterator = range(len(node))
-            elif isinstance(node, dict):
-                iterator = node.keys()
-            if iterator:
-                for child in iterator:
-                    normalize_schema(node[child])
-                    if isinstance(node[child], dict):
-                        if '$ref' in node[child]:
-                            ref_type = node[child]['$ref'].split('/')[-1]
+        self._normalize_schema(entity_definition)
+        return entity_definition
+
+    def _normalize_schema(self, node: Any):
+        iterator = common_iterable(node)
+        if iterator:
+            for child in iterator:
+                self._normalize_schema(node[child])
+                if isinstance(node[child], dict):
+                    if '$ref' in node[child]:
+                        ref_type = node[child]['$ref'].split('/')[-1]
+                        if ref_type in the_graph_builtin_type_to_json_schema_type:
                             node[child] = {
-                                **the_graph_builtin_type_to_json_schema_type.get(
-                                    ref_type, foreign_key_type), "description":
+                                **the_graph_builtin_type_to_json_schema_type[ref_type], "description":
                                 ref_type
                             }
-                        elif "properties" in node[child] and "return" in node[
-                                child]["properties"]:
-                            node[child] = node[child]["properties"]["return"]
-
-        normalize_schema(entity_definition)
-        return entity_definition
+                        else:
+                            node[child] = {
+                                **foreign_key_type, "description":
+                                f"{ref_type}.id"
+                            }
+                    elif "properties" in node[child] and "return" in node[
+                            child]["properties"]:
+                        node[child] = node[child]["properties"]["return"]
 
     @property
     def schema(self) -> dict:
@@ -120,8 +128,7 @@ class EntityStream(SubgraphStream):
 
     @property
     def query_type(self) -> str:
-        # TODO: how to pluralize this?
-        return f"{camelcase(self.entity_name)}s"
+        return p.plural_noun(camelcase(self.entity_name))
 
     @property
     def order_attribute(self) -> str:
@@ -146,7 +153,8 @@ class EntityStream(SubgraphStream):
 
     @property
     def query_fields(self) -> str:
-        return (k if max_depth(v) == 1 else f"{k} {{ id }}"
+        return (f"{k} {{ id }}"
+                if max_depth(v) > 1 or '.id' in v.get('description', '') else k
                 for k, v in self.schema["properties"].items())
 
     @property
@@ -165,10 +173,22 @@ query($batchSize: Int!{ f', $latestOrderValue: {self.order_attribute_type}!' if 
             print(response.json())
         return super().validate_response(response)
 
+    def _flatten_foreign_key(self, node):
+        if isinstance(node, dict) and list(node.keys()) == ['id']:
+            return node['id']
+
+        iterator = common_iterable(node)
+        if iterator:
+            for child in iterator:
+                node[child] = self._flatten_foreign_key(node[child])
+
+        return node
+
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
         rows = response.json()["data"][self.query_type]
         for row in rows:
+            row = {k: self._flatten_foreign_key(v) for k, v in row.items()}
             yield row
             self._latest_order_attribute_value = row.get(self.order_attribute)
 

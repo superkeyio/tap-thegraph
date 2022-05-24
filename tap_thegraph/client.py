@@ -1,7 +1,6 @@
 """GraphQL client handling, including TheGraphStream base class."""
 
 import json
-import logging
 import subprocess
 
 from singer_sdk.streams import GraphQLStream

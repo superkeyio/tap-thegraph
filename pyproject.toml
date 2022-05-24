@@ -18,6 +18,7 @@ gql = "^3.2.0"
 requests-toolbelt = "^0.9.1"
 stringcase = "^1.2.0"
 jsonref = "^0.2"
+inflect = "^5.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
