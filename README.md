@@ -7,7 +7,7 @@
 ```bash
 # 1. Install our packages for extracting subgraph data.
 npm install -g graphql-api-to-json-schema
-pipx install tap-thegraph
+pipx install git+https://github.com/superkeyio/tap-thegraph.git
 
 # 2. Install a Singer target for loading the data to a destination (for example, CSV).
 pipx install target-csv
@@ -25,9 +25,16 @@ tap-thegraph --config config.json | target-csv
 
 
 ```bash
-npm install -g graphql-api-to-json-schema # Needed for converting the GraphQL API schema for a subgraph to JSON schema
-pipx install tap-thegraph
+npm install -g graphql-api-to-json-schema
+pipx install git+https://github.com/superkeyio/tap-thegraph.git
 ```
+
+## Help?!?
+
+```bash
+tap-thegraph --help
+```
+
 
 ## Configuration
 
@@ -48,31 +55,37 @@ You must pass in a JSON file following this format:
 }
 ```
 
-For each entity that you want to extract, you must specify the `name` (ex: `Market`) and, optionally, `created_at`, which is the name of a timestamp / block number field corresponding to when the entity was created. 
+See the `examples/` directory for example config files.
+
+### Entities
+
+For each entity that you want to extract, you must specify the `name` (ex: `Market`) and, optionally, `created_at`, which is the name of a timestamp or block number field corresponding to when the entity was created. 
 
 Specifying `created_at` for an entity enables "incremental" replication, which means that we can re-run the tap and resume where we left off instead of replicating everything again ("full table" replication).
 
-A full list of supported settings and capabilities for this
-tap is available by running:
 
-```bash
-tap-thegraph --about
-```
+### Batch size
+
+By default, the tap extracts 1000 entities at a time. You can change that by specifying a `batch_size` at the root level of the configuration JSON.
+
 
 ## Usage
+
+### Meltano
+
+`tap-thegraph` was built with the Meltano SDK so it integrates with [Meltano](https://docs.meltano.com/getting-started)'s open source data stack out-of-the-box.
 
 
 ### Executing the Tap Directly
 
-```bash
-tap-thegraph --version
-tap-thegraph --help
-tap-thegraph --config CONFIG --discover > ./catalog.json
+You can also run the tap directly via the command line like so...
+
+```
+tap-thegraph --config config.json
 ```
 
-## Developer Resources
 
-- [ ] `Developer TODO:` As a first step, scan the entire project for the text "`TODO:`" and complete any recommended steps, deleting the "TODO" references once completed.
+## Developer Resources
 
 ### Initialize your Development Environment
 
