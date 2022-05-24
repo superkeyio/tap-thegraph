@@ -1,0 +1,13 @@
+{
+    "subgraphs": [
+      {
+        "url": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+        "entities": [
+            { "name": "Mint", "created_at": "timestamp" },
+            { "name": "Burn", "created_at": "timestamp" }
+        ]
+      }
+    ],
+    "batch_size": 1000
+}
+  

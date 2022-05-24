@@ -2,7 +2,7 @@
   "subgraphs": [
     {
       "url": "https://api.thegraph.com/subgraphs/name/graphprotocol/compound-v2",
-      "entities": [{ "name": "Account" }]
+      "entities": [{ "name": "Market" }]
     }
   ]
 }

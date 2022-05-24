@@ -1,22 +1,56 @@
 # tap-thegraph
 
-`tap-thegraph` is a Singer tap for TheGraph.
+`tap-thegraph` is a [Singer](https://www.singer.io/) tap for [The Graph](https://thegraph.com/en/) built with the [Meltano Tap SDK](https://sdk.meltano.com).
 
-Built with the [Meltano Tap SDK](https://sdk.meltano.com) for Singer Taps.
+## Quickstart
+
+```bash
+# 1. Install our packages for extracting subgraph data.
+npm install -g graphql-api-to-json-schema
+pipx install tap-thegraph
+
+# 2. Install a Singer target for loading the data to a destination (for example, CSV).
+pipx install target-csv
+
+# 3. Configure which subgraphs and entities to extract (for example, all markets on Compound V2).
+echo "{\"subgraphs\":[{\"url\":\"https://api.thegraph.com/subgraphs/name/graphprotocol/compound-v2\",\"entities\":[{\"name\":\"Market\"}]}]}" >> config.json
+
+# 4. Run the pipeline!
+tap-thegraph --config config.json | target-csv
+```
+
+
 
 ## Installation
 
-- [ ] `Developer TODO:` Update the below as needed to correctly describe the install procedure. For instance, if you do not have a PyPi repo, or if you want users to directly install from your git repo, you can modify this step as appropriate.
 
 ```bash
+npm install -g graphql-api-to-json-schema # Needed for converting the GraphQL API schema for a subgraph to JSON schema
 pipx install tap-thegraph
 ```
 
 ## Configuration
 
-### Accepted Config Options
+You must pass in a JSON file following this format:
+```json
+{
+  "subgraphs": [
+    {
+      "url": "<SUBGRAPH_URL>",
+      "entities": [
+        { "name": "<ENTITY_NAME>" }, 
+        { "name": "<ENTITY_NAME>", "created_at": "<TIMESTAMP_OR_BLOCK_NUMBER_FIELD>" }, 
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
 
-- [ ] `Developer TODO:` Provide a list of config options accepted by the tap.
+For each entity that you want to extract, you must specify the `name` (ex: `Market`) and, optionally, `created_at`, which is the name of a timestamp / block number field corresponding to when the entity was created. 
+
+Specifying `created_at` for an entity enables "incremental" replication, which means that we can re-run the tap and resume where we left off instead of replicating everything again ("full table" replication).
 
 A full list of supported settings and capabilities for this
 tap is available by running:
@@ -25,13 +59,8 @@ tap is available by running:
 tap-thegraph --about
 ```
 
-### Source Authentication and Authorization
-
-- [ ] `Developer TODO:` If your tap requires special access on the source system, or any special authentication requirements, provide those here.
-
 ## Usage
 
-You can easily run `tap-thegraph` by itself or in a pipeline using [Meltano](https://meltano.com/).
 
 ### Executing the Tap Directly
 

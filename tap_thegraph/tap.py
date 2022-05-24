@@ -11,7 +11,7 @@ from tap_thegraph.streams import (
 EntityType = th.ObjectType(
     th.Property("name", th.StringType, required=True),
     th.Property(
-        "replication_key",
+        "created_at",
         th.StringType,
         description=
         "Name of the field used for incremental replication (i.e. timestamp)"))
@@ -36,14 +36,13 @@ class TapTheGraph(Tap):
         """Return a list of discovered streams."""
 
         streams = []
-        for subgraph_config in self.config.get('subgraphs'):
+        for subgraph_config in self.config.get('subgraphs', []):
             for entity_config in subgraph_config.get('entities'):
                 streams.append(
                     EntityStream(
                         tap=self,
                         entity_name=entity_config.get('name'),
-                        replication_key=entity_config.get('replication_key'),
-                        subgraph_url=subgraph_config.get('url'),
-                        batch_size=self.config.get('batch_size')))
+                        replication_key=entity_config.get('created_at'),
+                        subgraph_url=subgraph_config.get('url')))
 
         return streams

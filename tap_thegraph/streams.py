@@ -91,7 +91,6 @@ class EntityStream(SubgraphStream):
     def __init__(self, *args, **kwargs):
         self.entity_name = kwargs.pop('entity_name')
         self.replication_key = kwargs.pop('replication_key')  # timestamp
-        self.batch_size = kwargs.pop('batch_size')
 
         super().__init__(*args, **kwargs)
 
@@ -143,9 +142,8 @@ class EntityStream(SubgraphStream):
     # https://thegraph.com/docs/en/developer/graphql-api/#pagination
     def get_url_params(self, context: Optional[dict],
                        next_page_token: Optional[Any]) -> Dict[str, Any]:
-        # TODO: make batch size configurable
         return {
-            "batchSize": self.batch_size,
+            "batchSize": self.config.get('batch_size'),
             "latestOrderValue": self._latest_order_attribute_value
         }
 
