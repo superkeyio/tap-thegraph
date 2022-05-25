@@ -1,6 +1,7 @@
 """Stream type classes for tap-thegraph."""
 
-from typing import Any, Dict, Iterable, Optional
+import json
+from typing import Any, Dict, Iterable, List, Optional
 
 from functools import cached_property
 
@@ -24,42 +25,40 @@ def max_depth(d):
 # https://thegraph.com/docs/en/developer/assemblyscript-api/#built-in-types
 the_graph_builtin_type_to_json_schema_type = {
     "Boolean": {
-        "type": "boolean"
+        "type": ["boolean"]
     },
     "BigDecimal": {
-        "type": "string"
+        "type": ["string"]
     },
     "BigInt": {
-        "type": "string"
+        "type": ["string"]
     },
     "Bytes": {
-        "type": "string",
+        "type": ["string"]
     },
     "ID": {
-        "type": "string"
+        "type": ["string"]
     },
     "String": {
-        "type": "string"
+        "type": ["string"]
     },
     "ByteArray": {
-        "type": "string",
+        "type": ["string"]
     },
     "TypedMap": {
-        "type": "object"
+        "type": ["object"]
     },
     "Int": {
-        "type": "integer"
+        "type": ["integer"]
     },
     "Address": {
-        "type": "string",
+        "type": ["string"],
         "minLength": 40,
         "maxLength": 40
     },
 }
 
-foreign_key_type = {
-    "type": "string",
-}
+foreign_key_type = {"type": ["string"]}
 
 
 def common_iterable(obj):
@@ -99,6 +98,12 @@ class EntityStream(SubgraphStream):
             self.api_json_schema["definitions"][entity_name])
 
         self._normalize_schema(entity_definition)
+
+        for property in entity_definition["properties"]:
+            if property not in entity_definition["required"]:
+                entity_definition["properties"][property]["type"].append(
+                    "null")
+
         return entity_definition
 
     def _normalize_schema(self, node: Any):
@@ -111,12 +116,12 @@ class EntityStream(SubgraphStream):
                         ref_type = node[child]['$ref'].split('/')[-1]
                         if ref_type in the_graph_builtin_type_to_json_schema_type:
                             node[child] = {
-                                **the_graph_builtin_type_to_json_schema_type[ref_type], "description":
+                                **deepcopy(the_graph_builtin_type_to_json_schema_type[ref_type]), "description":
                                 ref_type
                             }
                         else:
                             node[child] = {
-                                **foreign_key_type, "description":
+                                **deepcopy(foreign_key_type), "description":
                                 f"{ref_type}.id"
                             }
                     elif "properties" in node[child] and "return" in node[
@@ -143,8 +148,11 @@ class EntityStream(SubgraphStream):
     def get_url_params(self, context: Optional[dict],
                        next_page_token: Optional[Any]) -> Dict[str, Any]:
         return {
-            "batchSize": self.config.get('batch_size'),
-            "latestOrderValue": self._latest_order_attribute_value
+            "batchSize":
+            self.config.get('batch_size'),
+            "latestOrderValue":
+            self._latest_order_attribute_value
+            or self.get_starting_replication_key_value(context)
         }
 
     def get_next_page_token(self, response: requests.Response,
