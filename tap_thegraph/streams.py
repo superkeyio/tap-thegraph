@@ -152,8 +152,8 @@ class EntityStream(SubgraphStream):
             "batchSize":
             self.config.get('batch_size'),
             "latestOrderValue":
-            self._latest_order_attribute_value
-            or self.get_starting_replication_key_value(context)
+            max(self._latest_order_attribute_value,
+                self.get_starting_replication_key_value(context))
         }
 
     def get_next_page_token(self, response: requests.Response,

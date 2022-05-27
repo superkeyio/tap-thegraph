@@ -16,7 +16,7 @@ plugins:
         entities:
         - name: Block
           created_at: id
-          since: 14261737
+          since: "14261737"
   loaders:
   - name: target-jsonl
     variant: andyh1203
