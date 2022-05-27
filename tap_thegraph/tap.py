@@ -46,11 +46,8 @@ class TapTheGraph(Tap):
         for subgraph_config in self.config.get('subgraphs', []):
             for entity_config in subgraph_config.get('entities'):
                 streams.append(
-                    EntityStream(
-                        tap=self,
-                        entity_name=entity_config.get('name'),
-                        replication_key=entity_config.get('created_at'),
-                        since=entity_config.get('since'),
-                        subgraph_url=subgraph_config.get('url')))
+                    EntityStream(tap=self,
+                                 entity_config=entity_config,
+                                 subgraph_url=subgraph_config.get('url')))
 
         return streams

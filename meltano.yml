@@ -17,6 +17,7 @@ plugins:
         - name: Block
           created_at: id
           since: "14261737"
+      batch_size: 100
   loaders:
   - name: target-jsonl
     variant: andyh1203

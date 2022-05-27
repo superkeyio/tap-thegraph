@@ -13,6 +13,8 @@ import inflect
 
 p = inflect.engine()
 
+# TODO: incremental still doesn't work
+
 
 # https://stackoverflow.com/questions/43587505/how-to-find-how-many-level-of-dictionary-is-there-in-python
 def max_depth(d):
@@ -81,18 +83,26 @@ class EntityStream(SubgraphStream):
     _latest_order_attribute_value: Any
     _next_page_token: Any
 
+    STATE_MSG_FREQUENCY = 100
+
+    entity_config: dict
+
     @cached_property
     def name(self) -> str:
         return f"{self.subgraph_name}_{self.entity_name}"
 
-    replication_key: Optional[str]
+    @property
+    def entity_name(self) -> str:
+        return self.entity_config.get('name')
 
     def __init__(self, *args, **kwargs):
-        self.entity_name = kwargs.pop('entity_name')
-        self.replication_key = kwargs.pop('replication_key')  # timestamp
-        self._latest_order_attribute_value = kwargs.pop('since')
+        self.entity_config = kwargs.pop('entity_config')
+
+        self._latest_order_attribute_value = self.entity_config.get("since")
 
         super().__init__(*args, **kwargs)
+
+        self.replication_key = self.entity_config.get('created_at')
 
     def _extract_entity_schema_from_api_schema(self, entity_name: str) -> dict:
         entity_definition = deepcopy(
@@ -151,7 +161,7 @@ class EntityStream(SubgraphStream):
         return {
             "batchSize":
             self.config.get('batch_size'),
-            "latestOrderValue":
+            "lastOrderAttributeValue":
             max(self._latest_order_attribute_value or "0",
                 self.get_starting_replication_key_value(context) or "0")
         }
@@ -170,8 +180,8 @@ class EntityStream(SubgraphStream):
     def query(self) -> str:
         newline = "\n\t"
         return f"""
-query($batchSize: Int!{ f', $latestOrderValue: {self.order_attribute_type}!' if self._latest_order_attribute_value else '' }) {{
-    {self.query_type}(first: $batchSize, orderBy: {self.order_attribute}, orderDirection: asc{f', where: {{ {self.order_attribute}_gt: $latestOrderValue }}' if self._latest_order_attribute_value else ''}) {{
+query($batchSize: Int!{ f', $lastOrderAttributeValue: {self.order_attribute_type}!' if self._latest_order_attribute_value else '' }) {{
+    {self.query_type}(first: $batchSize, orderBy: {self.order_attribute}, orderDirection: asc{f', where: {{ {self.order_attribute}_gt: $lastOrderAttributeValue }}' if self._latest_order_attribute_value else ''}) {{
         {newline.join(self.query_fields)}
     }}
 }}
