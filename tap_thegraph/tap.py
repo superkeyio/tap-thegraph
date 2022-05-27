@@ -14,7 +14,14 @@ EntityType = th.ObjectType(
         "created_at",
         th.StringType,
         description=
-        "Name of the field used for incremental replication (i.e. timestamp)"))
+        "Name of the field used for incremental replication (i.e. timestamp)"),
+    th.Property(
+        "since",
+        th.StringType,
+        description=
+        "Starting point for incremental replication if `created_at` was provided"
+    ),
+)
 
 SubgraphType = th.ObjectType(
     th.Property(
@@ -43,6 +50,7 @@ class TapTheGraph(Tap):
                         tap=self,
                         entity_name=entity_config.get('name'),
                         replication_key=entity_config.get('created_at'),
+                        since=entity_config.get('since'),
                         subgraph_url=subgraph_config.get('url')))
 
         return streams

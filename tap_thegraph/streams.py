@@ -78,18 +78,19 @@ class EntityStream(SubgraphStream):
 
     batch_size: int
 
-    _latest_order_attribute_value: Any = None
-    _next_page_token: Any = None
+    _latest_order_attribute_value: Any
+    _next_page_token: Any
 
     @cached_property
     def name(self) -> str:
         return f"{self.subgraph_name}_{self.entity_name}"
 
-    replication_key: Optional[str] = None
+    replication_key: Optional[str]
 
     def __init__(self, *args, **kwargs):
         self.entity_name = kwargs.pop('entity_name')
         self.replication_key = kwargs.pop('replication_key')  # timestamp
+        self._latest_order_attribute_value = kwargs.pop('since')
 
         super().__init__(*args, **kwargs)
 
