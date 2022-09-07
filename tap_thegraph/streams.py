@@ -67,7 +67,7 @@ class EntityStream(SubgraphStream):
 
     @cached_property
     def name(self) -> str:
-        return f"{self.subgraph_name}_{self.entity_name}"
+        return f"{self.subgraph_name}.{self.entity_name}"
 
     @property
     def entity_name(self) -> str:
